@@ -2,19 +2,12 @@ package main
 
 import "time"
 
-type zoneRecord struct {
-	zoneId    string
-	Id        string
-	name      string
-	IpAddress string
-}
-
 // https://mholt.github.io/json-to-go/ FTW
 
 // Cloudflare json models
 
-// Verify status
-type Validation struct {
+// GET https://api.cloudflare.com/client/v4/user/tokens/verify
+type ValidationResponse struct {
 	Result struct {
 		ID     string `json:"id"`
 		Status string `json:"status"`
@@ -28,8 +21,8 @@ type Validation struct {
 	} `json:"messages"`
 }
 
-// list of zones
-type Zones struct {
+// GET https://api.cloudflare.com/client/v4/zones
+type ZonesResponse struct {
 	Success  bool          `json:"success"`
 	Errors   []interface{} `json:"errors"`
 	Messages []interface{} `json:"messages"`
@@ -82,8 +75,8 @@ type Zones struct {
 	} `json:"result"`
 }
 
-// list of records
-type Records struct {
+// GET https://api.cloudflare.com/client/v4/zones/{ zone ID }/dns_records
+type RecordsResponse struct {
 	Success  bool          `json:"success"`
 	Errors   []interface{} `json:"errors"`
 	Messages []interface{} `json:"messages"`
@@ -109,9 +102,9 @@ type Records struct {
 	} `json:"result"`
 }
 
-// single record and result from patch
+// PUT/PATCH https://api.cloudflare.com/client/v4/zones/{ zone ID }/dns_records/{ record ID }
 
-type Record struct {
+type RecordResponse struct {
 	Success  bool          `json:"success"`
 	Errors   []interface{} `json:"errors"`
 	Messages []interface{} `json:"messages"`

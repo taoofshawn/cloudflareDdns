@@ -14,14 +14,20 @@ func main() {
 	flag.Parse()
 	defer glog.Flush()
 
-	glog.Info("Howdy")
+	glog.Info("Mornin' Ralph")
 
-	apiToken := os.Getenv("APITOKEN")
-	if len(apiToken) == 0 {
-		glog.Fatal("missing environment variable: APITOKEN")
+	config := map[string]string{
+		"APITOKEN": os.Getenv("APITOKEN"),
+		"NAMELIST": os.Getenv("NAMELIST"),
 	}
 
-	body := newCloudflareClient(apiToken)
-	fmt.Println(body.zoneIds)
-	fmt.Println(body.zoneRecords)
+	for k, v := range config {
+		if len(v) == 0 {
+			glog.Fatalf("missing environment variable: %s\n", k)
+		}
+	}
+
+	cfclient := newCloudflareClient(config["APITOKEN"])
+
+	fmt.Println(cfclient.zoneRecords)
 }
