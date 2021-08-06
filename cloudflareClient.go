@@ -89,7 +89,7 @@ func (cfc *cloudflareClient) getRecords() {
 
 		for _, zoneRecord := range recordsResponse.Result {
 			record := ZoneRecord{
-				name:       zoneRecord.Name,
+				name:       strings.ToLower(zoneRecord.Name),
 				ipAddress:  zoneRecord.Content,
 				recordId:   zoneRecord.ID,
 				recordType: zoneRecord.Type,
