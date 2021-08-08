@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+
+    hoverddns:
+        build: .
+        container_name: hoverddns
+        image: taoofshawn/cloudflareDdns:testing
+        environment:
+            - APITOKEN=shawndo
+            - POLLTIME=360
+            - TZ=America/New_York
+            - NAMELIST=>
+                www.shawndo.net,
+                www.pythonbyexample.com
+
+# https://docs.docker.com/compose/compose-file/compose-file-v3/#environment

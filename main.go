@@ -2,27 +2,27 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 )
 
 func main() {
 
+	// Setup log
 	flag.Set("logtostderr", "true")
 	flag.Parse()
 	defer glog.Flush()
 
 	glog.Info("Mornin' Ralph")
 
+	// Collect configuration from environment variables
 	config := map[string]string{
 		"APITOKEN": os.Getenv("APITOKEN"),
 		"NAMELIST": os.Getenv("NAMELIST"),
-		"POLLTIME": os.Getenv("POLLTIME"),
 	}
 
 	for k, v := range config {
@@ -31,10 +31,15 @@ func main() {
 		}
 	}
 
+	polltime, err := strconv.Atoi(os.Getenv("POLLTIME"))
+	if err != nil {
+		polltime = 360
+	}
+
+	// Instantiate cloudflare tool
 	cfclient := newCloudflareClient(config["APITOKEN"])
 
-	// fmt.Println(cfclient.zoneRecords)
-
+	// Format/Prepare list of names frp, collected configuration
 	// split comma separated into slice, lowercase, remove whitespace.
 	managedNames := strings.Split(
 		strings.ToLower(
@@ -43,39 +48,37 @@ func main() {
 				"")),
 		",")
 
-	// fmt.Println(names)
-	fmt.Println(getCurrentOriginIp())
+	for {
+		currentIp := getCurrentDynamicIp()
 
-	for _, managedName := range managedNames {
-		fmt.Printf("checking %s\n", managedName)
-		matched := false
+		for _, managedName := range managedNames {
+			record, valuePresent := cfclient.zoneRecords[managedName]
+			if !valuePresent {
 
-		for _, record := range cfclient.zoneRecords {
+				glog.Infof("creating new record for: %s", managedName)
+				// Create/POST record. define method:
+				// cfclient.newRecord(managedName, currentIp)
 
-			if managedName == record.name {
-				fmt.Printf("will totally update %s\n", record.name)
-				matched = true
+			} else if currentIp != record.ipAddress {
+
+				glog.Infof("updating record for: %s", managedName)
+				// Update/PATCH record. define method:
+				// cfclient.updateRecord(managedName, currentIp)
+
+			} else {
+
+				glog.Infof("no update needed for : %s", managedName)
+				continue
 			}
 
+			//Refresh local data if something changed
+			cfclient.getRecords()
+
 		}
 
-		if !matched {
-			fmt.Printf("Need to create: %s\n", managedName)
-		}
+		glog.Infof("sleeping for %d minutes", polltime)
+		time.Sleep(time.Duration(polltime) * time.Minute)
 
 	}
-}
 
-func getCurrentOriginIp() string {
-	defer glog.Flush()
-	glog.Info("checking current origin IP address")
-
-	resp, err := http.Get("https://api.ipify.org")
-	if err != nil {
-		glog.Error("unable to determine origin IP address")
-	}
-	defer resp.Body.Close()
-
-	body, _ := ioutil.ReadAll(resp.Body)
-	return string(body)
 }

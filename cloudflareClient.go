@@ -10,7 +10,6 @@ import (
 )
 
 type ZoneRecord struct {
-	name       string
 	ipAddress  string
 	recordId   string
 	recordType string
@@ -19,14 +18,15 @@ type ZoneRecord struct {
 
 type cloudflareClient struct {
 	apiToken    string
-	zoneRecords []ZoneRecord
+	zoneRecords map[string]ZoneRecord
 }
 
 func newCloudflareClient(token string) *cloudflareClient {
 	defer glog.Flush()
 
 	cfc := cloudflareClient{
-		apiToken: token,
+		apiToken:    token,
+		zoneRecords: nil,
 	}
 
 	glog.Info("verifying token")
@@ -81,7 +81,7 @@ func (cfc *cloudflareClient) getRecords() {
 	}
 
 	glog.Info("getting zone records")
-	cfc.zoneRecords = nil
+	cfc.zoneRecords = make(map[string]ZoneRecord)
 	for _, zoneId := range zoneIds {
 		rawRecords, _ := cfc.call("GET", "zones/"+zoneId+"/dns_records", "")
 		recordsResponse := RecordsResponse{}
@@ -89,14 +89,14 @@ func (cfc *cloudflareClient) getRecords() {
 
 		for _, zoneRecord := range recordsResponse.Result {
 			record := ZoneRecord{
-				name:       strings.ToLower(zoneRecord.Name),
 				ipAddress:  zoneRecord.Content,
 				recordId:   zoneRecord.ID,
 				recordType: zoneRecord.Type,
 				zoneId:     zoneRecord.ZoneID,
 			}
-			glog.Infof("adding record: %s\n", record.name)
-			cfc.zoneRecords = append(cfc.zoneRecords, record)
+			glog.Infof("adding record: %s\n", zoneRecord.Name)
+			cfc.zoneRecords[strings.ToLower(zoneRecord.Name)] = record
+
 		}
 
 	}
