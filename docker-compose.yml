@@ -4,14 +4,18 @@ services:
 
     hoverddns:
         build: .
-        container_name: hoverddns
-        image: taoofshawn/cloudflareDdns:testing
+        container_name: cloudflareddns
+        image: taoofshawn/cloudflareddns:testing
         environment:
-            - APITOKEN=shawndo
+            - APITOKEN=<token from cloudflare>
             - POLLTIME=360
             - TZ=America/New_York
             - NAMELIST=>
-                www.shawndo.net,
-                www.pythonbyexample.com
+                www.example.com,
+                example.com,
+                www.example2.com,
+                example2.com
 
 # https://docs.docker.com/compose/compose-file/compose-file-v3/#environment
+# not sure if folded scalars work with list-style entries. 
+# Might need to switch to dictionary style
