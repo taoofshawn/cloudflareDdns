@@ -4,17 +4,14 @@ services:
 
     cloudflareddns:
         container_name: cloudflareddns
-        image: taoofshawn/cloudflareddns:testing
+        image: taoofshawn/cloudflareddns
         environment:
             - APITOKEN=<token from cloudflare>
             - POLLTIME=360
             - TZ=America/New_York
-            - NAMELIST=>
-                www.example.com,
+            - NAMELIST=www.example.com,
                 example.com,
                 www.example2.com,
                 example2.com
 
-# https://docs.docker.com/compose/compose-file/compose-file-v3/#environment
-# not sure if folded scalars work with list-style entries. 
-# Might need to switch to dictionary style
+

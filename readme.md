@@ -32,12 +32,29 @@ services:
     cloudflareddns:
         build: .
         container_name: cloudflareddns
-        image: taoofshawn/cloudflareddns:testing
+        image: taoofshawn/cloudflareddns
         environment:
             - APITOKEN=<token from cloudflare>
             - POLLTIME=360
             - TZ=America/New_York
-            - NAMELIST=>
+            - NAMELIST=www.example.com,
+                        example.com,
+                        www.example2.com,
+                        example2.com
+```
+dictionary style environment variables will also work with a folded scalar:
+```yaml
+version: '3'
+services:
+    cloudflareddns:
+        build: .
+        container_name: cloudflareddns
+        image: taoofshawn/cloudflareddns
+        environment:
+            APITOKEN: <token from cloudflare>
+            POLLTIME: 360
+            TZ: America/New_York
+            NAMELIST: >-
                 www.example.com,
                 example.com,
                 www.example2.com,
