@@ -12,14 +12,12 @@ import (
 
 func main() {
 
-	// Setup log
 	flag.Set("logtostderr", "true")
 	flag.Parse()
 	defer glog.Flush()
 
 	glog.Info("Mornin' Ralph")
 
-	// Collect configuration from environment variables
 	config := map[string]string{
 		"APITOKEN": os.Getenv("APITOKEN"),
 		"NAMELIST": os.Getenv("NAMELIST"),
@@ -33,13 +31,11 @@ func main() {
 
 	polltime, err := strconv.Atoi(os.Getenv("POLLTIME"))
 	if err != nil {
-		polltime = 360
+		polltime = 60
 	}
 
-	// Instantiate cloudflare tool
 	cfclient := newCloudflareClient(config["APITOKEN"])
 
-	// Format/Prepare list of names frp, collected configuration
 	// split comma separated into slice, lowercase, remove whitespace.
 	managedNames := strings.Split(
 		strings.ToLower(
@@ -56,23 +52,22 @@ func main() {
 			if !valuePresent {
 
 				glog.Infof("creating new record for: %s", managedName)
-				// Create/POST record. define method:
-				// cfclient.newRecord(managedName, currentIp)
+				err := cfclient.newRecord(managedName, currentIp)
+				if err != nil {
+					glog.Errorf("creating new record for: %s was unsuccessful", managedName)
+				}
 
 			} else if currentIp != record.ipAddress {
 
 				glog.Infof("updating record for: %s", managedName)
-				// Update/PATCH record. define method:
-				// cfclient.updateRecord(managedName, currentIp)
-
+				err := cfclient.updateRecord(managedName, currentIp)
+				if err != nil {
+					glog.Errorf("updating record for: %s was unsuccessful ", managedName)
+				}
 			} else {
 
 				glog.Infof("no update needed for : %s", managedName)
-				continue
 			}
-
-			//Refresh local data if something changed
-			cfclient.getRecords()
 
 		}
 

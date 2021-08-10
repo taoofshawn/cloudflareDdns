@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -14,6 +16,7 @@ type ZoneRecord struct {
 	recordId   string
 	recordType string
 	zoneId     string
+	zoneName   string
 }
 
 type cloudflareClient struct {
@@ -62,21 +65,23 @@ func (cfc *cloudflareClient) call(method, resource, data string) ([]byte, error)
 	}
 
 	defer response.Body.Close()
-	body, _ := ioutil.ReadAll(response.Body)
+	body, err := ioutil.ReadAll(response.Body)
 
 	return body, err
 }
 
 func (cfc *cloudflareClient) getRecords() {
+	defer glog.Flush()
 
-	glog.Info("getting zone list")
+	glog.Info("refreshing zone records")
+
 	rawZones, _ := cfc.call("GET", "zones", "")
 	zonesReponse := ZonesResponse{}
 	json.Unmarshal(rawZones, &zonesReponse)
 
 	zoneIds := []string{}
 	for _, result := range zonesReponse.Result {
-		glog.Infof("adding zone: %s\n", result.Name)
+		glog.Infof("found zone: %s\n", result.Name)
 		zoneIds = append(zoneIds, result.ID)
 	}
 
@@ -93,12 +98,70 @@ func (cfc *cloudflareClient) getRecords() {
 				recordId:   zoneRecord.ID,
 				recordType: zoneRecord.Type,
 				zoneId:     zoneRecord.ZoneID,
+				zoneName:   zoneRecord.ZoneName,
 			}
-			glog.Infof("adding record: %s\n", zoneRecord.Name)
+			glog.Infof("found record: %s\n", zoneRecord.Name)
 			cfc.zoneRecords[strings.ToLower(zoneRecord.Name)] = record
 
 		}
 
 	}
+
+}
+
+func (cfc *cloudflareClient) newRecord(managedName string, currentIp string) error {
+	defer glog.Flush()
+
+	// Find the zone for the new record
+	zone := strings.Join(strings.Split(managedName, ".")[1:], ".")
+	zoneId := ""
+	zoneExists := false
+	for _, record := range cfc.zoneRecords {
+		if zone == record.zoneName {
+			glog.Infof("record: %s will be added to zone %s", managedName, zone)
+			zoneExists = true
+			zoneId = record.zoneId
+			break
+		}
+	}
+
+	if !zoneExists {
+		glog.Errorf("zone for %s does not exist", managedName)
+		return errors.New("bad zone")
+	}
+
+	jsonData := fmt.Sprintf(`{
+			"type": "A",
+			"name": "%s",
+			"content": "%s",
+			"ttl": 1,
+			"proxied": true
+		}`, managedName, currentIp)
+
+	response, err := cfc.call("POST", "zones/"+zoneId+"/dns_records", jsonData)
+	if err != nil {
+		glog.Errorf("\njsonData: %s\nerror: %s\nresponse: %s", jsonData, err, response)
+	} else {
+		cfc.getRecords()
+	}
+
+	return err
+}
+
+func (cfc *cloudflareClient) updateRecord(managedName string, currentIp string) error {
+	defer glog.Flush()
+
+	zoneId := cfc.zoneRecords[managedName].zoneId
+	recordId := cfc.zoneRecords[managedName].recordId
+	jsonData := fmt.Sprintf(`{"content": "%s"}`, currentIp)
+
+	response, err := cfc.call("PATCH", "zones/"+zoneId+"/dns_records/"+recordId, jsonData)
+	if err != nil {
+		glog.Errorf("\njsonData: %s\nerror: %s\nresponse: %s", jsonData, err, response)
+	} else {
+		cfc.getRecords()
+	}
+
+	return err
 
 }
