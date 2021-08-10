@@ -1,4 +1,4 @@
-# cloudflareDdns
+# [cloudflareDdns](https://github.com/taoofshawn/cloudflareDdns)  
 Keep cloudflare dns records up to date with your origin dynamic IP.  
 
 My use case:  
