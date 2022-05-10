@@ -101,7 +101,9 @@ func (cfc *cloudflareClient) getRecords() {
 				zoneName:   zoneRecord.ZoneName,
 			}
 			glog.Infof("found record: %s\n", zoneRecord.Name)
-			cfc.zoneRecords[strings.ToLower(zoneRecord.Name)] = record
+			if record.recordType == "A" {
+				cfc.zoneRecords[strings.ToLower(zoneRecord.Name)] = record
+			}
 
 		}
 
