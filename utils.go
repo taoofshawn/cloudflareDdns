@@ -1,22 +1,32 @@
 package main
 
 import (
-	"io/ioutil"
+	"io"
+	"log/slog"
 	"net/http"
-
-	"github.com/golang/glog"
+	"time"
 )
 
-func getCurrentDynamicIp() string {
-	defer glog.Flush()
-	glog.Info("checking current Dynamic (origin) IP address")
+var ipServiceURL = "https://api.ipify.org"
 
-	resp, err := http.Get("https://api.ipify.org")
+func getCurrentDynamicIp() string {
+	slog.Info("checking current dynamic (origin) IP address")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(ipServiceURL)
 	if err != nil {
-		glog.Error("unable to determine dynamic IP address")
+		slog.Error("unable to determine dynamic IP address", "error", err)
+		return ""
 	}
 	defer resp.Body.Close()
 
-	body, _ := ioutil.ReadAll(resp.Body)
-	return string(body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		slog.Error("unable to read IP response", "error", err)
+		return ""
+	}
+
+	ip := string(body)
+	slog.Info("current dynamic IP", "ip", ip)
+	return ip
 }
