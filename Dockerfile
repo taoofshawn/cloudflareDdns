@@ -1,9 +1,11 @@
-# Auto-merge confirmation
 FROM golang:1.26.5-bookworm AS builder
-RUN git clone https://github.com/taoofshawn/cloudflareDdns.git /cloudflareDdns && \
-    cd /cloudflareDdns && \
-    CGO_ENABLED=0 go build
+WORKDIR /build
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -o /cloudflareDdns .
 
 FROM gcr.io/distroless/static:nonroot AS runner
-COPY --from=builder /cloudflareDdns/cloudflareDdns /
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /cloudflareDdns /
 CMD ["/cloudflareDdns"]
