@@ -1,4 +1,4 @@
-FROM golang:1.26-bookworm AS builder
+FROM golang:1.26.5-bookworm AS builder
 RUN git clone https://github.com/taoofshawn/cloudflareDdns.git /cloudflareDdns && \
     cd /cloudflareDdns && \
     go build
