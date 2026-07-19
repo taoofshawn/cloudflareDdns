@@ -30,6 +30,8 @@ jobs:
 
       - name: approve and merge via API
         if: env.only_dockerfile == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           echo "✅ Only Dockerfile changed — approving and merging"
           gh pr review ${{ github.event.pull_request.number }} --approve
